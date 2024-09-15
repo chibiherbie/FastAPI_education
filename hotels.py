@@ -6,8 +6,16 @@ router = APIRouter(prefix='/hotels', tags=['Отели'])
 
 hotels = [
     {"id": 1, "title": "Sochi", "name": "sochi"},
-    {"id": 2, "title": "Dubai", "name": "dubai"}
+    {"id": 2, "title": "Dubai", "name": "dubai"},
+    {"id": 3, "title": "Мальдивы", "name": "maldivi"},
+    {"id": 4, "title": "Геленджик", "name": "gelendzhik"},
+    {"id": 5, "title": "Москва", "name": "moscow"},
+    {"id": 6, "title": "Казань", "name": "kazan"},
+    {"id": 7, "title": "Санкт-Петербург", "name": "spb"},
 ]
+
+DEFAULT_PAGE = 1
+DEFAULT_PER_PAGE = 3
 
 
 @router.get("/", summary='Получение отелей')
@@ -15,6 +23,8 @@ def get_hotels(
         id: int | None = Query(None, description='Айдишник'),
         title: str | None = Query(None, description='Название отеля'),
         name: str | None = Query(None, description='Название отеля 2'),
+        page: int | None = Query(DEFAULT_PAGE, description='Номер страницы откуда брать отели для пагинации'),
+        per_page: int | None = Query(DEFAULT_PER_PAGE, description='Количество возвращенных отелей'),
 ):
     _hotels = []
     for hotel in hotels:
@@ -25,7 +35,10 @@ def get_hotels(
         if name and name != hotel["name"]:
             continue
         _hotels.append(hotel)
-    return _hotels
+
+    start = (page - 1) * per_page
+    end = start + per_page
+    return _hotels[start:end]
 
 
 @router.post("/", summary='Добавление нового отеля')
