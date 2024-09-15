@@ -1,4 +1,5 @@
 from fastapi import Query, Body, APIRouter
+from pydantic import BaseModel
 
 router = APIRouter(prefix='/hotels', tags=['Отели'])
 
@@ -6,6 +7,11 @@ hotels = [
     {"id": 1, "title": "Sochi", "name": "sochi"},
     {"id": 2, "title": "Dubai", "name": "dubai"}
 ]
+
+
+class Hotel(BaseModel):
+    title: str | None
+    name: str | None
 
 
 @router.get("/", summary='Получение отелей')
@@ -27,29 +33,22 @@ def get_hotels(
 
 
 @router.post("/", summary='Добавление нового отеля')
-def create_hotel(
-        title: str = Body(embed=True),
-        name: str = Body(embed=True),
-):
+def create_hotel(hotel_data: Hotel):
     global hotels
     hotels.append({
         "id": hotels[-1]['id'] + 1,
-        "title": title,
-        "name": name,
+        "title": hotel_data.title,
+        "name": hotel_data.name,
     })
     return {"status": "OK"}
 
 
 @router.put("/{hotel_id}", summary='Изменение данных об отеле')
-def put_hotel(
-        hotel_id: int,
-        title: str = Body(),
-        name: str = Body(),
-):
+def put_hotel(hotel_id: int, hotel_data: Hotel):
     for hotel in hotels:
         if hotel_id == hotel["id"]:
-            hotel["title"] = title
-            hotel["name"] = name
+            hotel["title"] = hotel_data.title
+            hotel["name"] = hotel_data.name
             return {"status": "OK"}
     return {"status": "Not found"}
 
@@ -59,15 +58,11 @@ def put_hotel(
     summary='Частичное обновление данных об отеле',
     description='<h1>Частично обновляем данные об отеле: можно отправить name, а можно title</h1>',
 )
-def patch_hotel(
-        hotel_id: int,
-        title: str | None = Body(None),
-        name: str | None = Body(None),
-):
+def patch_hotel(hotel_id: int,hotel_data: Hotel):
     for hotel in hotels:
         if hotel_id == hotel["id"]:
-            hotel["title"] = title if title else hotel["title"]
-            hotel["name"] = name if name else hotel["name"]
+            hotel["title"] = hotel_data.title if hotel_data.title else hotel["title"]
+            hotel["name"] = hotel_data.name if hotel_data.name else hotel["name"]
             return {"status": "OK"}
     return {"status": "Not found"}
 
