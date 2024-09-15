@@ -45,8 +45,8 @@ def create_hotel(
 @app.put("/hotels/{hotel_id}")
 def put_hotel(
         hotel_id: int,
-        title: str = Body(embed=True),
-        name: str = Body(embed=True),
+        title: str = Body(),
+        name: str = Body(),
 ):
     for hotel in hotels:
         if hotel_id == hotel["id"]:
@@ -56,11 +56,15 @@ def put_hotel(
     return {"status": "Not found"}
 
 
-@app.patch("/hotels/{hotel_id}")
+@app.patch(
+    "/hotels/{hotel_id}",
+    summary='Частичное обновление данных об отеле',
+    description='<h1>Частично обновляем данные об отеле: можно отправить name, а можно title</h1>',
+)
 def patch_hotel(
         hotel_id: int,
-        title: str | None = Body(None, embed=True),
-        name: str | None = Body(None, embed=True),
+        title: str | None = Body(None),
+        name: str | None = Body(None),
 ):
     for hotel in hotels:
         if hotel_id == hotel["id"]:
