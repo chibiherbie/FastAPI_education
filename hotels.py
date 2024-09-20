@@ -18,13 +18,13 @@ DEFAULT_PAGE = 1
 DEFAULT_PER_PAGE = 3
 
 
-@router.get("/", summary='Получение отелей')
+@router.get("", summary='Получение отелей')
 def get_hotels(
         id: int | None = Query(None, description='Айдишник'),
         title: str | None = Query(None, description='Название отеля'),
         name: str | None = Query(None, description='Название отеля 2'),
-        page: int | None = Query(DEFAULT_PAGE, description='Номер страницы откуда брать отели для пагинации'),
-        per_page: int | None = Query(DEFAULT_PER_PAGE, description='Количество возвращенных отелей'),
+        page: int | None = Query(DEFAULT_PAGE, ge=1, description='Номер страницы откуда брать отели для пагинации'),
+        per_page: int | None = Query(DEFAULT_PER_PAGE, gt=1, le=100, description='Количество возвращенных отелей'),
 ):
     _hotels = []
     for hotel in hotels:
