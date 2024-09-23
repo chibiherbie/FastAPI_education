@@ -1,6 +1,9 @@
 from fastapi import Query, APIRouter, Body
+from sqlalchemy import insert
 
 from src.api.dependecies import PaginationDep
+from src.db import async_session_maker
+from src.models.hotels import HotelsOrm
 from src.shemas.hotels import Hotel, HotelPATCH
 
 router = APIRouter(prefix='/hotels', tags=['Отели'])
@@ -21,7 +24,7 @@ def get_hotels(
         pagination: PaginationDep,
         id: int | None = Query(None, description='Айдишник'),
         title: str | None = Query(None, description='Название отеля'),
-        name: str | None = Query(None, description='Название отеля 2'),
+        location: str | None = Query(None, description='Название отеля 2'),
 ):
     _hotels = []
     for hotel in hotels:
@@ -29,7 +32,7 @@ def get_hotels(
             continue
         if title and title != hotel["title"]:
             continue
-        if name and name != hotel["name"]:
+        if location and location != hotel["name"]:
             continue
         _hotels.append(hotel)
 
@@ -39,28 +42,28 @@ def get_hotels(
 
 
 @router.post("/", summary='Добавление нового отеля')
-def create_hotel(hotel_data: Hotel = Body(openapi_examples={
+async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
     "1": {
         "summary": "Сочи",
         "value": {
-            "title": "Отель Сочи 5 stars",
-            "name": "sochi_5",
+            "title": "Отель 5 stars",
+            "location": "Сочи, ул. Карт, д. 5",
         }
     },
     "2": {
         "summary": "Дубай",
         "value": {
-            "title": "Отель дубай back one",
-            "name": "dubai back one",
+            "title": "Back one",
+            "location": "Думай, ул. Шейха, д. 2, к. 5",
         },
     },
 })):
-    global hotels
-    hotels.append({
-        "id": hotels[-1]['id'] + 1,
-        "title": hotel_data.title,
-        "name": hotel_data.name,
-    })
+
+    async with async_session_maker() as session:
+        add_hotel_stmt = insert(HotelsOrm).values(**hotel_data.model_dump())  # add_hotel_statement
+        await session.execute(add_hotel_stmt)
+        await session.commit()
+
     return {"status": "OK"}
 
 
