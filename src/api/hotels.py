@@ -6,6 +6,8 @@ from src.db import async_session_maker
 from src.models.hotels import HotelsOrm
 from src.shemas.hotels import Hotel, HotelPATCH
 
+DEFAULT_PER_PAGE = 3
+
 router = APIRouter(prefix='/hotels', tags=['Отели'])
 
 
@@ -16,14 +18,25 @@ async def get_hotels(
         title: str | None = Query(None, description='Название отеля'),
         location: str | None = Query(None, description='Название отеля 2'),
 ):
+    limit = pagination.per_page or DEFAULT_PER_PAGE
+    offset = (pagination.page - 1) * limit
+
     async with async_session_maker() as session:
         query = select(HotelsOrm)
+        if id:
+            query = query.filter_by(id=id)
+        if title:
+            query = query.filter_by(title=title)
+
+        query = (
+            query
+            .limit(limit)
+            .offset(offset)
+        )
         result = await session.execute(query)
         hotels = result.scalars().all()
 
-    start = (pagination.page - 1) * pagination.per_page
-    end = start + pagination.per_page
-    return hotels[start:end]
+    return hotels
 
 
 @router.post("/", summary='Добавление нового отеля')
