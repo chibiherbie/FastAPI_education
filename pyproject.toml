@@ -9,6 +9,7 @@ readme = "README.md"
 python = "^3.11"
 fastapi = {extras = ["standard"], version = "^0.114.2"}
 uvicorn = "^0.30.6"
+pydantic-settings = "^2.5.2"
 
 
 [build-system]
