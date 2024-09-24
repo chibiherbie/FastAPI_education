@@ -1,5 +1,6 @@
-from fastapi import Query, APIRouter, Body
+from fastapi import Query, APIRouter, Body, HTTPException
 from sqlalchemy import insert, select, func
+from sqlalchemy.exc import MultipleResultsFound
 
 from src.api.dependecies import PaginationDep
 from src.db import async_session_maker
@@ -45,7 +46,6 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
         },
     },
 })):
-
     async with async_session_maker() as session:
         hotel = await HotelsRepository(session).add(hotel_data)
         await session.commit()
@@ -54,13 +54,17 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
 
 
 @router.put("/{hotel_id}", summary='Изменение данных об отеле')
-def put_hotel(hotel_id: int, hotel_data: Hotel):
-    for hotel in hotels:
-        if hotel_id == hotel["id"]:
-            hotel["title"] = hotel_data.title
-            hotel["name"] = hotel_data.name
-            return {"status": "OK"}
-    return {"status": "Not found"}
+async def put_hotel(hotel_id: int, hotel_data: Hotel):
+    async with async_session_maker() as session:
+        try:
+            hotel = await HotelsRepository(session).edit(hotel_data, id=hotel_id)
+            await session.commit()
+        except MultipleResultsFound as e:
+            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+
+    if not hotel:
+        return HTTPException(status_code=404, detail="Элемент не найден")
+    return {"status": "OK"}
 
 
 @router.patch(
@@ -78,7 +82,14 @@ def patch_hotel(hotel_id: int, hotel_data: HotelPATCH):
 
 
 @router.delete("/{hotel_id}", summary='Удаление отеля')
-def delete_hotel(hotel_id: int):
-    global hotels
-    hotels = [hotel for hotel in hotels if hotel_id != hotel["id"]]
+async def delete_hotel(hotel_id: int):
+    async with async_session_maker() as session:
+        try:
+            hotel = await HotelsRepository(session).delete(id=hotel_id)
+            await session.commit()
+        except MultipleResultsFound as e:
+            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+
+    if not hotel:
+        return HTTPException(status_code=404, detail="Элемент не найден")
     return {"status": "OK"}
