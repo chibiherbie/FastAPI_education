@@ -4,6 +4,7 @@ from sqlalchemy import insert, select, func
 from src.api.dependecies import PaginationDep
 from src.db import async_session_maker
 from src.models.hotels import HotelsOrm
+from src.repositories.hotels import HotelsRepository
 from src.shemas.hotels import Hotel, HotelPATCH
 
 DEFAULT_PER_PAGE = 3
@@ -17,23 +18,26 @@ async def get_hotels(
         title: str | None = Query(None, description='Название отеля'),
         location: str | None = Query(None, description='Адрес отеля'),
 ):
-    limit = pagination.per_page or DEFAULT_PER_PAGE
-    offset = (pagination.page - 1) * limit
-
     async with async_session_maker() as session:
-        query = select(HotelsOrm)
-        if location:
-            query = query.filter(func.lower(HotelsOrm.location).contains(location.strip().lower()))
-        if title:
-            query = query.filter(func.lower(HotelsOrm.title).contains(title.strip().lower()))
+        return await HotelsRepository(session).get_all()
 
-        query = (
-            query
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await session.execute(query)
-        hotels = result.scalars().all()
+    # limit = pagination.per_page or DEFAULT_PER_PAGE
+    # offset = (pagination.page - 1) * limit
+    #
+    # async with async_session_maker() as session:
+    #     query = select(HotelsOrm)
+    #     if location:
+    #         query = query.filter(func.lower(HotelsOrm.location).contains(location.strip().lower()))
+    #     if title:
+    #         query = query.filter(func.lower(HotelsOrm.title).contains(title.strip().lower()))
+    #
+    #     query = (
+    #         query
+    #         .limit(limit)
+    #         .offset(offset)
+    #     )
+    #     result = await session.execute(query)
+    #     hotels = result.scalars().all()
 
     return hotels
 
