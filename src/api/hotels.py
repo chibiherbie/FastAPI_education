@@ -1,10 +1,8 @@
 from fastapi import Query, APIRouter, Body, HTTPException
-from sqlalchemy import insert, select, func
 from sqlalchemy.exc import MultipleResultsFound
 
 from src.api.dependecies import PaginationDep
 from src.db import async_session_maker
-from src.models.hotels import HotelsOrm
 from src.repositories.hotels import HotelsRepository
 from src.shemas.hotels import Hotel, HotelPATCH
 
@@ -72,13 +70,17 @@ async def put_hotel(hotel_id: int, hotel_data: Hotel):
     summary='Частичное обновление данных об отеле',
     description='<h1>Частично обновляем данные об отеле: можно отправить name, а можно title</h1>',
 )
-def patch_hotel(hotel_id: int, hotel_data: HotelPATCH):
-    for hotel in hotels:
-        if hotel_id == hotel["id"]:
-            hotel["title"] = hotel_data.title if hotel_data.title else hotel["title"]
-            hotel["name"] = hotel_data.name if hotel_data.name else hotel["name"]
-            return {"status": "OK"}
-    return {"status": "Not found"}
+async def patch_hotel(hotel_id: int, hotel_data: HotelPATCH):
+    async with async_session_maker() as session:
+        try:
+            hotel = await HotelsRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
+            await session.commit()
+        except MultipleResultsFound as e:
+            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+
+    if not hotel:
+        return HTTPException(status_code=404, detail="Элемент не найден")
+    return {"status": "OK"}
 
 
 @router.delete("/{hotel_id}", summary='Удаление отеля')
