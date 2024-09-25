@@ -4,7 +4,7 @@ from sqlalchemy.exc import MultipleResultsFound
 from src.api.dependecies import PaginationDep
 from src.db import async_session_maker
 from src.repositories.hotels import HotelsRepository
-from src.shemas.hotels import Hotel, HotelPATCH
+from src.shemas.hotels import Hotel, HotelPATCH, HotelAdd
 
 DEFAULT_PER_PAGE = 3
 
@@ -34,7 +34,7 @@ async def get_hotel(hotel_id: int):
 
 
 @router.post("/", summary='Добавление нового отеля')
-async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
+async def create_hotel(hotel_data: HotelAdd = Body(openapi_examples={
     "1": {
         "summary": "Сочи",
         "value": {
@@ -58,7 +58,7 @@ async def create_hotel(hotel_data: Hotel = Body(openapi_examples={
 
 
 @router.put("/{hotel_id}", summary='Изменение данных об отеле')
-async def put_hotel(hotel_id: int, hotel_data: Hotel):
+async def put_hotel(hotel_id: int, hotel_data: HotelAdd):
     async with async_session_maker() as session:
         try:
             hotel = await HotelsRepository(session).edit(hotel_data, id=hotel_id)
