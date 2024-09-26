@@ -17,3 +17,7 @@ class UserAdd(BaseUser):
 
 class User(BaseUser):
     id: int
+
+
+class UserWithHashedPassword(User):
+    hashed_password: str
