@@ -1,5 +1,4 @@
-
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Request
 from passlib.context import CryptContext
 from sqlalchemy.exc import IntegrityError
 
@@ -9,7 +8,6 @@ from src.services.auth import AuthService
 from src.shemas.users import UserRequestAdd, UserAdd
 
 router = APIRouter(prefix="/auth", tags=["Авторизация и аутентификация"])
-
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -44,3 +42,11 @@ async def login_user(
         access_token = AuthService().create_access_token({'user_id': user.id})
         response.set_cookie('access_token', access_token)
         return {"access_token": access_token}
+
+
+@router.get('/only_auth')
+async def only_auth(
+        request: Request,
+):
+    access_token = request.cookies.get('access_token')  # request.cookies: dict
+    return {'status': access_token if access_token else 'Токен не найден'}
