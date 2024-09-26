@@ -49,4 +49,9 @@ async def only_auth(
         request: Request,
 ):
     access_token = request.cookies.get('access_token')  # request.cookies: dict
-    return {'status': access_token if access_token else 'Токен не найден'}
+    data = AuthService().decode_token(access_token)
+    user_id = data['user_id']
+    async with async_session_maker() as session:
+        user = await UsersRepository(session).get_one_or_none(id=user_id)
+
+    return user
