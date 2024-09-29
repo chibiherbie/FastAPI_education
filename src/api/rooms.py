@@ -1,6 +1,7 @@
 from fastapi import Query, APIRouter, Body, HTTPException
 from sqlalchemy.exc import MultipleResultsFound
 
+from src.api.dependecies import DBDep
 from src.db import async_session_maker
 from src.repositories.rooms import RoomsRepository
 from src.shemas.rooms import Room, RoomPatch, RoomAdd, RoomAddRequest, RoomPatchRequest
@@ -12,21 +13,21 @@ router = APIRouter(prefix='/hotels', tags=['Номера'])
 
 @router.get("/{hotel_id}/rooms", summary='Получение номера')
 async def get_rooms(
+        db: DBDep,
         hotel_id: int,
 ):
-    async with async_session_maker() as session:
-        return await RoomsRepository(session).get_filtered(hotel_id=hotel_id)
+    return await db.rooms.get_filtered(hotel_id=hotel_id)
 
 
 @router.get("/{hotel_id}/rooms/{room_id}", summary='Получение номера в отеле по id')
-async def get_room(hotel_id: int, room_id: int):
-    async with async_session_maker() as session:
-        return await RoomsRepository(session).get_one_or_none(hotel_id=hotel_id, id=room_id)
+async def get_room(hotel_id: int, room_id: int, db: DBDep):
+    return await db.rooms.get_one_or_none(hotel_id=hotel_id, id=room_id)
 
 
 @router.post("/{hotel_id}/rooms/", summary='Добавление нового номера')
 async def create_room(
         hotel_id: int,
+        db: DBDep,
         room_data: RoomAddRequest = Body(openapi_examples={
             "1": {
                 "summary": "Базовая комната",
@@ -48,22 +49,20 @@ async def create_room(
         })
 ):
     _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
-    async with async_session_maker() as session:
-        room = await RoomsRepository(session).add(_room_data)
-        await session.commit()
+    room = await db.rooms.add(_room_data)
+    await db.commit()
 
     return {"status": "OK", "data": room}
 
 
 @router.put("/{hotel_id}/rooms/{room_id}", summary='Изменение данных в номере')
-async def put_room(hotel_id: int, room_id: int, room_data: RoomAddRequest):
+async def put_room(hotel_id: int, room_id: int, room_data: RoomAddRequest, db: DBDep):
     _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
-    async with async_session_maker() as session:
-        try:
-            hotel = await RoomsRepository(session).edit(_room_data, id=room_id)
-            await session.commit()
-        except MultipleResultsFound as e:
-            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+    try:
+        hotel = await db.rooms.edit(_room_data, id=room_id)
+        await db.commit()
+    except MultipleResultsFound as e:
+        return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
 
     if not hotel:
         return HTTPException(status_code=404, detail="Элемент не найден")
@@ -75,14 +74,13 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomAddRequest):
     summary='Частичное обновление данных номера',
     description='<h1>Частично обновляем данные номера</h1>',
 )
-async def patch_rooms(hotel_id: int, room_id: int, room_data: RoomPatchRequest):
+async def patch_rooms(hotel_id: int, room_id: int, room_data: RoomPatchRequest, db: DBDep):
     _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
-    async with async_session_maker() as session:
-        try:
-            hotel = await RoomsRepository(session).edit(_room_data, hotel_id=hotel_id, id=room_id, exclude_unset=True)
-            await session.commit()
-        except MultipleResultsFound as e:
-            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+    try:
+        hotel = await db.rooms.edit(_room_data, hotel_id=hotel_id, id=room_id, exclude_unset=True)
+        await db.commit()
+    except MultipleResultsFound as e:
+        return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
 
     if not hotel:
         return HTTPException(status_code=404, detail="Элемент не найден")
@@ -90,13 +88,12 @@ async def patch_rooms(hotel_id: int, room_id: int, room_data: RoomPatchRequest):
 
 
 @router.delete("/{hotel_id}/rooms/{room_id}", summary='Удаление номера')
-async def delete_room(hotel_id: int, room_id: int):
-    async with async_session_maker() as session:
-        try:
-            hotel = await RoomsRepository(session).delete(hotel_id=hotel_id, id=room_id)
-            await session.commit()
-        except MultipleResultsFound as e:
-            return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
+async def delete_room(hotel_id: int, room_id: int, db: DBDep):
+    try:
+        hotel = await db.rooms.delete(hotel_id=hotel_id, id=room_id)
+        await db.commit()
+    except MultipleResultsFound as e:
+        return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
 
     if not hotel:
         return HTTPException(status_code=404, detail="Элемент не найден")
