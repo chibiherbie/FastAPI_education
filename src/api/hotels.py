@@ -4,7 +4,7 @@ from sqlalchemy.exc import MultipleResultsFound
 from src.api.dependecies import PaginationDep
 from src.db import async_session_maker
 from src.repositories.hotels import HotelsRepository
-from src.shemas.hotels import Hotel, HotelPATCH, HotelAdd
+from src.shemas.hotels import Hotel, HotelPatch, HotelAdd
 
 DEFAULT_PER_PAGE = 3
 
@@ -76,7 +76,7 @@ async def put_hotel(hotel_id: int, hotel_data: HotelAdd):
     summary='Частичное обновление данных об отеле',
     description='<h1>Частично обновляем данные об отеле: можно отправить name, а можно title</h1>',
 )
-async def patch_hotel(hotel_id: int, hotel_data: HotelPATCH):
+async def patch_hotel(hotel_id: int, hotel_data: HotelPatch):
     async with async_session_maker() as session:
         try:
             hotel = await HotelsRepository(session).edit(hotel_data, id=hotel_id, exclude_unset=True)
