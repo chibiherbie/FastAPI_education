@@ -1,7 +1,7 @@
+from fastapi import HTTPException
 from pydantic import BaseModel
 from sqlalchemy import select, insert, delete, update
-
-from src.shemas.hotels import Hotel
+from sqlalchemy.exc import IntegrityError
 
 
 class BaseRepository:
@@ -24,11 +24,16 @@ class BaseRepository:
             return None
         return self.schema.model_validate(model, from_attributes=True)
 
-    async def add(self, data: BaseModel):
-        add_data_stmt = insert(self.model).values(**data.model_dump()).returning(self.model)
-        result = await self.session.execute(add_data_stmt)
-        model = result.scalars().one()
-        return self.schema.model_validate(model, from_attributes=True)
+    async def add(self, data: BaseModel, **kwargs):
+        try:
+            add_data_stmt = insert(self.model).values(**data.model_dump(), **kwargs).returning(self.model)
+            result = await self.session.execute(add_data_stmt)
+            model = result.scalars().one()
+            return self.schema.model_validate(model, from_attributes=True)
+        except IntegrityError as e:
+            if 'ForeignKeyViolationError' in str(e):
+                raise HTTPException(status_code=400, detail='Такого отеля нет')
+            raise HTTPException(status_code=400)
 
     async def edit(self, data: BaseModel, exclude_unset: bool = False, **filter_by):
         update_data_stmt = (
