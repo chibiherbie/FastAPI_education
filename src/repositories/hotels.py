@@ -13,28 +13,33 @@ class HotelsRepository(BaseRepository):
     model = HotelsOrm
     schema = Hotel
 
-    async def get_all(self, location, title, limit, offset) -> list[Hotel]:
-
-        query = select(HotelsOrm)
-        if location:
-            query = query.filter(func.lower(HotelsOrm.location).contains(location.strip().lower()))
-        if title:
-            query = query.filter(func.lower(HotelsOrm.title).contains(title.strip().lower()))
-
-        query = (
-            query
-            .limit(limit)
-            .offset(offset)
-        )
-        result = await self.session.execute(query)
-        return [Hotel.model_validate(hotel, from_attributes=True) for hotel in result.scalars().all()]
-
-    async def get_filtered_by_time(self, date_from: date, date_to: date):
+    async def get_filtered_by_time(
+            self,
+            date_from: date,
+            date_to: date,
+            location: str,
+            title: str,
+            limit: int,
+            offset: int,
+    ):
         rooms_ids_to_get = rooms_ids_for_bookings(date_from, date_to)
         hotels_ids_to_get = (
             select(RoomsOrm.hotel_id)
             .select_from(RoomsOrm)
             .filter(RoomsOrm.id.in_(rooms_ids_to_get))
         )
-        return await self.get_filtered(HotelsOrm.id.in_(hotels_ids_to_get))
 
+        filters = [HotelsOrm.id.in_(hotels_ids_to_get)]
+        if location:
+            filters.append(func.lower(HotelsOrm.location).contains(location.strip().lower()))
+        if title:
+            filters.append(func.lower(HotelsOrm.title).contains(title.strip().lower()))
+
+        query = (
+            select(self.model)
+            .filter(*filters)
+            .limit(limit)
+            .offset(offset)
+        )
+        result = await self.session.execute(query)
+        return [self.schema.model_validate(model, from_attributes=True) for model in result.scalars().all()]

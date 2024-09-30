@@ -4,8 +4,6 @@ from fastapi import Query, APIRouter, Body, HTTPException
 from sqlalchemy.exc import MultipleResultsFound
 
 from src.api.dependecies import DBDep
-from src.db import async_session_maker
-from src.repositories.rooms import RoomsRepository
 from src.shemas.rooms import Room, RoomPatch, RoomAdd, RoomAddRequest, RoomPatchRequest
 
 DEFAULT_PER_PAGE = 3
