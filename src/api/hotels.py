@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import Query, APIRouter, Body, HTTPException
 from sqlalchemy.exc import MultipleResultsFound
 
@@ -13,17 +15,22 @@ router = APIRouter(prefix='/hotels', tags=['Отели'])
 async def get_hotels(
         pagination: PaginationDep,
         db: DBDep,
+        date_from: date = Query(example="2024-10-02"),
+        date_to: date = Query(example="2024-10-08"),
         title: str | None = Query(None, description='Название отеля'),
         location: str | None = Query(None, description='Адрес отеля'),
 ):
     per_page = pagination.per_page or DEFAULT_PER_PAGE
-    return await db.hotels.get_all(
-        location=location,
-        title=title,
-        limit=per_page,
-        offset=(pagination.page - 1) * per_page,
+    # return await db.hotels.get_all(
+    #     location=location,
+    #     title=title,
+    #     limit=per_page,
+    #     offset=(pagination.page - 1) * per_page,
+    # )
+    return await db.hotels.get_filtered_by_time(
+        date_from=date_from,
+        date_to=date_to,
     )
-
 
 @router.get("/{hotel_id}", summary='Получение отеля по id')
 async def get_hotel(hotel_id: int, db: DBDep):
