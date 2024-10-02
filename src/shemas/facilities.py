@@ -1,10 +1,9 @@
 from pydantic import BaseModel
 
 
-class AddFacilities(BaseModel):
+class FacilityAdd(BaseModel):
     title: str
 
 
-class Facilities(AddFacilities):
+class Facility(FacilityAdd):
     id: int
-
