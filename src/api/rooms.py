@@ -4,7 +4,8 @@ from fastapi import Query, APIRouter, Body, HTTPException
 from sqlalchemy.exc import MultipleResultsFound
 
 from src.api.dependecies import DBDep
-from src.shemas.facilities import RoomFacilityAdd
+from src.models.facilities import RoomsFacilitiesOrm
+from src.shemas.facilities import RoomFacilityAdd, RoomFacility
 from src.shemas.rooms import Room, RoomPatch, RoomAdd, RoomAddRequest, RoomPatchRequest
 
 DEFAULT_PER_PAGE = 3
@@ -66,6 +67,26 @@ async def put_room(hotel_id: int, room_id: int, room_data: RoomAddRequest, db: D
     _room_data = RoomAdd(hotel_id=hotel_id, **room_data.model_dump())
     try:
         hotel = await db.rooms.edit(_room_data, id=room_id)
+
+        facilities: list[RoomFacility] = await db.rooms_facilities.get_filtered(room_id=room_id)
+        room_facilities_ids = [facility.facility_id for facility in facilities]
+
+        added_rooms_facilities_data = [
+            RoomFacilityAdd(room_id=room_id, facility_id=f_id) for f_id in room_data.facilities_ids
+            if f_id not in room_facilities_ids
+        ]
+        deleted_rooms_facilities_data = [
+            RoomFacility(room_id=room_id, facility_id=facility.facility_id, id=facility.id)
+            for facility in facilities
+            if facility.facility_id not in room_data.facilities_ids
+        ]
+
+        if added_rooms_facilities_data:
+            await db.rooms_facilities.add_bulk(added_rooms_facilities_data)
+
+        deleted_room_facilities_ids = [d.id for d in deleted_rooms_facilities_data]
+        await db.rooms_facilities.delete_bulk(RoomsFacilitiesOrm.id.in_(deleted_room_facilities_ids))
+
         await db.commit()
     except MultipleResultsFound as e:
         return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")
@@ -84,6 +105,27 @@ async def patch_rooms(hotel_id: int, room_id: int, room_data: RoomPatchRequest, 
     _room_data = RoomPatch(hotel_id=hotel_id, **room_data.model_dump(exclude_unset=True))
     try:
         hotel = await db.rooms.edit(_room_data, hotel_id=hotel_id, id=room_id, exclude_unset=True)
+
+        if room_data.facilities_ids:
+            facilities: list[RoomFacility] = await db.rooms_facilities.get_filtered(room_id=room_id)
+            room_facilities_ids = [facility.facility_id for facility in facilities]
+
+            added_rooms_facilities_data = [
+                RoomFacilityAdd(room_id=room_id, facility_id=f_id) for f_id in room_data.facilities_ids
+                if f_id not in room_facilities_ids
+            ]
+            deleted_rooms_facilities_data = [
+                RoomFacility(room_id=room_id, facility_id=facility.facility_id, id=facility.id)
+                for facility in facilities
+                if facility.facility_id not in room_data.facilities_ids
+            ]
+
+            if added_rooms_facilities_data:
+                await db.rooms_facilities.add_bulk(added_rooms_facilities_data)
+
+            deleted_room_facilities_ids = [d.id for d in deleted_rooms_facilities_data]
+            await db.rooms_facilities.delete_bulk(RoomsFacilitiesOrm.id.in_(deleted_room_facilities_ids))
+
         await db.commit()
     except MultipleResultsFound as e:
         return HTTPException(status_code=422, detail="Элементов больше чем ожидалось")

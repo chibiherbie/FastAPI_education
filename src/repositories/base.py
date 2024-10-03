@@ -60,3 +60,7 @@ class BaseRepository:
         delete_data_stmt = delete(self.model).filter_by(**filter_by).returning(self.model)
         result = await self.session.execute(delete_data_stmt)
         return result.scalar()
+
+    async def delete_bulk(self, *args):
+        delete_data_stmt = delete(self.model).filter(*args)
+        await self.session.execute(delete_data_stmt)
