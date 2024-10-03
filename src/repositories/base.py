@@ -42,6 +42,10 @@ class BaseRepository:
                 raise HTTPException(status_code=400, detail='Такого отеля нет')
             raise HTTPException(status_code=400)
 
+    async def add_bulk(self, data: list[BaseModel]):
+        add_data_stmt = insert(self.model).values([item.model_dump() for item in data]).returning(self.model)
+        await self.session.execute(add_data_stmt)
+
     async def edit(self, data: BaseModel, exclude_unset: bool = False, **filter_by):
         update_data_stmt = (
             update(self.model)
