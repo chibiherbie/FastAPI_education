@@ -1,5 +1,7 @@
 from pydantic import BaseModel, ConfigDict
 
+from src.shemas.facilities import Facility
+
 
 class RoomAddRequest(BaseModel):
     title: str
@@ -20,6 +22,10 @@ class RoomAdd(BaseModel):
 class Room(RoomAdd):
     id: int
     hotel_id: int
+
+
+class RoomWithRels(RoomAdd):  # with relationship
+    facilities: list[Facility]
 
 
 class RoomPatchRequest(BaseModel):
